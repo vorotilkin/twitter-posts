@@ -1,0 +1,16 @@
+grpc:
+  server:
+    address: "localhost:50052"
+
+db:
+  host: db
+  port: 5433
+  user: postgres
+  password: password
+  database: posts
+  poolsize: 10
+  sslmode: disable
+
+migration:
+  path: "./schema/migrations"
+  needMigration: true

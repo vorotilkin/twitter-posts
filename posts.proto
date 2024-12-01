@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "/proto";
+
+service Posts {
+  rpc Create(CreateRequest) returns (CreateResponse);
+  rpc PostByID(PostByIDRequest) returns (PostByIDResponse);
+  rpc Posts(PostsRequest) returns (PostsResponse);
+}
+
+message Post {
+  int32 id = 1;
+  string body = 2;
+  google.protobuf.Timestamp created_at = 3;
+  google.protobuf.Timestamp updated_at = 4;
+  int32 user_id = 5;
+  int32 like_counter = 6;
+  repeated Comment comments = 7;
+}
+
+message Comment {
+  int32 id = 1;
+  string body = 2;
+  google.protobuf.Timestamp created_at = 3;
+  google.protobuf.Timestamp updated_at = 4;
+  int32 user_id = 5;
+  int32 post_id = 6;
+}
+
+message CreateRequest {
+  int32 user_id = 1;
+  string body = 2;
+}
+
+message CreateResponse {
+  Post post = 1;
+}
+
+message PostByIDRequest {
+  int32 id = 1;
+}
+
+message PostByIDResponse {
+  Post post = 1;
+}
+
+message FilterByUserID {
+  int32 user_id = 1;
+}
+
+message FilterByOrder {
+  enum Sort {
+    SORT_UNSPECIFIED = 0;
+    SORT_ASC = 1;
+    SORT_DESC = 2;
+  }
+  Sort sort = 1;
+}
+
+message FilterByPagination {
+  int32 per_page = 1;
+}
+
+message PostsRequest {
+  message Filters {
+    FilterByPagination pagination = 1;
+    FilterByOrder sort = 2;
+    FilterByUserID filter_user = 3;
+  }
+  Filters filters = 1;
+}
+
+message PostsResponse {
+  repeated Post posts = 1;
+}

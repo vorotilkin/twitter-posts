@@ -2,9 +2,9 @@ package post
 
 import (
 	"context"
-	"errors"
 	"github.com/go-jet/jet/v2/postgres"
 	"github.com/jackc/pgx/v5"
+	"github.com/samber/lo"
 	"github.com/vorotilkin/twitter-posts/domain/models"
 	"github.com/vorotilkin/twitter-posts/pkg/database"
 	"github.com/vorotilkin/twitter-posts/schema/gen/posts/public/model"
@@ -13,110 +13,6 @@ import (
 
 type Repository struct {
 	conn *database.Database
-}
-
-func (r *Repository) PostByID(ctx context.Context, id int32) (models.Post, error) {
-	query, args := table.Post.
-		SELECT(
-			table.Post.ID,
-			table.Post.Body,
-			table.Post.UserID,
-			table.Post.CreatedAt,
-			table.Post.UpdatedAt,
-		).
-		WHERE(table.Post.ID.EQ(postgres.Int(int64(id)))).
-		Sql()
-
-	row := r.conn.QueryRow(ctx, query, args...)
-	post := model.Post{}
-
-	err := row.Scan(
-		&post.ID,
-		&post.Body,
-		&post.UserID,
-		&post.CreatedAt,
-		&post.UpdatedAt,
-	)
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		return models.Post{}, err
-	}
-
-	count, err := r.likeCount(ctx, id)
-	if err != nil {
-		return models.Post{}, err
-	}
-
-	comments, err := r.commentsByPostID(ctx, id)
-	if err != nil {
-		return models.Post{}, err
-	}
-
-	return domainPost(post, comments, count), nil
-}
-
-func (r *Repository) likeCount(ctx context.Context, postID int32) (int32, error) {
-	query, args := table.Like.
-		SELECT(
-			postgres.COUNT(table.Like.ID),
-		).
-		WHERE(table.Like.PostID.EQ(postgres.Int(int64(postID))).AND(table.Like.IsLike.IS_TRUE())).
-		Sql()
-
-	row := r.conn.QueryRow(ctx, query, args...)
-	var count int32
-
-	err := row.Scan(
-		&count,
-	)
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		return 0, err
-	}
-
-	return count, nil
-}
-
-func (r *Repository) commentsByPostID(ctx context.Context, postID int32) ([]models.Comment, error) {
-	query, args := table.Comment.
-		SELECT(
-			table.Comment.ID,
-			table.Comment.Body,
-			table.Comment.UserID,
-			table.Comment.PostID,
-			table.Comment.CreatedAt,
-			table.Comment.UpdatedAt,
-		).
-		WHERE(table.Comment.PostID.EQ(postgres.Int(int64(postID)))).
-		Sql()
-
-	rows, err := r.conn.Query(ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	if rows.Err() != nil {
-		return nil, err
-	}
-
-	defer rows.Close()
-
-	comments, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (models.Comment, error) {
-		var comment model.Comment
-
-		err := row.Scan(
-			&comment.ID,
-			&comment.Body,
-			&comment.UserID,
-			&comment.PostID,
-			&comment.CreatedAt,
-			&comment.UpdatedAt,
-		)
-		if err != nil {
-			return models.Comment{}, err
-		}
-
-		return domainComment(comment), nil
-	})
-
-	return comments, err
 }
 
 func (r *Repository) Create(ctx context.Context, userID int32, body string) (models.Post, error) {
@@ -149,7 +45,76 @@ func (r *Repository) Create(ctx context.Context, userID int32, body string) (mod
 		return models.Post{}, err
 	}
 
-	return domainPost(post, nil, 0), nil
+	return domainPost(post), nil
+}
+
+func (r *Repository) Posts(ctx context.Context, filter models.PostFilter) ([]models.Post, error) {
+	query := table.Post.
+		SELECT(
+			table.Post.ID,
+			table.Post.Body,
+			table.Post.UserID,
+			table.Post.CreatedAt,
+			table.Post.UpdatedAt,
+		)
+
+	filter.Sort.ForEach(func(sort models.Sort) {
+		if sort.IsAsc() {
+			query.ORDER_BY(table.Post.CreatedAt.ASC())
+		}
+		if sort.IsDesc() {
+			query.ORDER_BY(table.Post.UpdatedAt.DESC())
+		}
+	})
+
+	filter.PostIDs.ForEach(func(postIDs []int32) {
+		ids := lo.Map(postIDs, func(postID int32, _ int) postgres.Expression {
+			return postgres.Int(int64(postID))
+		})
+		query.WHERE(table.Post.ID.IN(ids...))
+	})
+
+	filter.UserIDs.ForEach(func(userIDs []int32) {
+		ids := lo.Map(userIDs, func(userID int32, _ int) postgres.Expression {
+			return postgres.Int(int64(userID))
+		})
+		query.WHERE(table.Post.UserID.IN(ids...))
+	})
+
+	filter.Pagination.ForEach(func(pagination models.Pagination) {
+		query.LIMIT(int64(pagination.PerPage))
+	})
+
+	sql, args := query.Sql()
+
+	rows, err := r.conn.Query(ctx, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	if rows.Err() != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	posts, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (models.Post, error) {
+		var post model.Post
+
+		err := row.Scan(
+			&post.ID,
+			&post.Body,
+			&post.UserID,
+			&post.CreatedAt,
+			&post.UpdatedAt,
+		)
+		if err != nil {
+			return models.Post{}, err
+		}
+
+		return domainPost(post), nil
+	})
+
+	return posts, err
 }
 
 func NewRepository(conn *database.Database) *Repository {
