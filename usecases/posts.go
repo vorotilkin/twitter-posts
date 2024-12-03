@@ -6,7 +6,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 	"github.com/vorotilkin/twitter-posts/domain/models"
-	"github.com/vorotilkin/twitter-posts/proto"
+	"github.com/vorotilkin/twitter-posts/protoposts"
 	"github.com/vorotilkin/twitter-posts/usecases/hydrators"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -26,13 +26,13 @@ type CommentRepository interface {
 }
 
 type PostsServer struct {
-	proto.UnimplementedPostsServer
+	protoposts.UnimplementedPostsServer
 	postsRepository    PostsRepository
 	likeRepository     LikeRepository
 	commentsRepository CommentRepository
 }
 
-func (s *PostsServer) Create(ctx context.Context, request *proto.CreateRequest) (*proto.CreateResponse, error) {
+func (s *PostsServer) Create(ctx context.Context, request *protoposts.CreateRequest) (*protoposts.CreateResponse, error) {
 	if len(request.GetBody()) == 0 || request.GetUserId() == 0 {
 		return nil, status.Error(codes.InvalidArgument, "body and user_id is required")
 	}
@@ -42,12 +42,12 @@ func (s *PostsServer) Create(ctx context.Context, request *proto.CreateRequest) 
 		return nil, err
 	}
 
-	return &proto.CreateResponse{
+	return &protoposts.CreateResponse{
 		Post: hydrators.ProtoPost(post),
 	}, nil
 }
 
-func (s *PostsServer) PostByID(ctx context.Context, request *proto.PostByIDRequest) (*proto.PostByIDResponse, error) {
+func (s *PostsServer) PostByID(ctx context.Context, request *protoposts.PostByIDRequest) (*protoposts.PostByIDResponse, error) {
 	postID := request.GetId()
 	if postID == 0 {
 		return nil, status.Error(codes.InvalidArgument, "id is required")
@@ -79,12 +79,12 @@ func (s *PostsServer) PostByID(ctx context.Context, request *proto.PostByIDReque
 
 	post.Comments = commentsByPostID[postID]
 
-	return &proto.PostByIDResponse{
+	return &protoposts.PostByIDResponse{
 		Post: hydrators.ProtoPost(post),
 	}, nil
 }
 
-func (s *PostsServer) Posts(ctx context.Context, request *proto.PostsRequest) (*proto.PostsResponse, error) {
+func (s *PostsServer) Posts(ctx context.Context, request *protoposts.PostsRequest) (*protoposts.PostsResponse, error) {
 	protoFilter := request.GetFilters()
 	if protoFilter == nil {
 		return nil, status.Error(codes.InvalidArgument, "filters is required")
@@ -128,7 +128,7 @@ func (s *PostsServer) Posts(ctx context.Context, request *proto.PostsRequest) (*
 		posts[i].Comments = commentsByPostID[post.ID]
 	}
 
-	return &proto.PostsResponse{
+	return &protoposts.PostsResponse{
 		Posts: hydrators.ProtoPosts(posts),
 	}, nil
 }

@@ -4,7 +4,7 @@
 // - protoc             v5.28.3
 // source: posts.proto
 
-package proto
+package protoposts
 
 import (
 	context "context"

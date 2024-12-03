@@ -10,7 +10,7 @@ import (
 	"github.com/vorotilkin/twitter-posts/pkg/database"
 	pkgGrpc "github.com/vorotilkin/twitter-posts/pkg/grpc"
 	"github.com/vorotilkin/twitter-posts/pkg/migration"
-	"github.com/vorotilkin/twitter-posts/proto"
+	"github.com/vorotilkin/twitter-posts/protoposts"
 	"github.com/vorotilkin/twitter-posts/usecases"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
@@ -59,7 +59,7 @@ func main() {
 		fx.Provide(fx.Annotate(post.NewRepository, fx.As(new(usecases.PostsRepository)))),
 		fx.Provide(fx.Annotate(like.NewRepository, fx.As(new(usecases.LikeRepository)))),
 		fx.Provide(fx.Annotate(comment.NewRepository, fx.As(new(usecases.CommentRepository)))),
-		fx.Provide(fx.Annotate(usecases.NewPostsServer, fx.As(new(proto.PostsServer)))),
+		fx.Provide(fx.Annotate(usecases.NewPostsServer, fx.As(new(protoposts.PostsServer)))),
 		fx.Invoke(func(lc fx.Lifecycle, server interfaces.Hooker) {
 			lc.Append(fx.Hook{
 				OnStart: server.OnStart,
@@ -67,7 +67,7 @@ func main() {
 			})
 		}),
 		fx.Invoke(fx.Annotate(migration.Do, fx.ParamTags("", "", `name:"dsn"`))),
-		fx.Invoke(proto.RegisterPostsServer),
+		fx.Invoke(protoposts.RegisterPostsServer),
 	}
 
 	app := fx.New(opts...)
