@@ -4,7 +4,7 @@
 // - protoc             v5.28.3
 // source: posts.proto
 
-package protoposts
+package proto
 
 import (
 	context "context"
@@ -19,9 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Posts_Create_FullMethodName   = "/Posts/Create"
-	Posts_PostByID_FullMethodName = "/Posts/PostByID"
-	Posts_Posts_FullMethodName    = "/Posts/Posts"
+	Posts_Create_FullMethodName   = "/posts.Posts/Create"
+	Posts_PostByID_FullMethodName = "/posts.Posts/PostByID"
+	Posts_Posts_FullMethodName    = "/posts.Posts/Posts"
 )
 
 // PostsClient is the client API for Posts service.
@@ -176,7 +176,7 @@ func _Posts_Posts_Handler(srv interface{}, ctx context.Context, dec func(interfa
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Posts_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "Posts",
+	ServiceName: "posts.Posts",
 	HandlerType: (*PostsServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

@@ -1,8 +1,10 @@
 syntax = "proto3";
 
+package posts;
+
 import "google/protobuf/timestamp.proto";
 
-option go_package = "/protoposts";
+option go_package = "/proto";
 
 service Posts {
   rpc Create(CreateRequest) returns (CreateResponse);
