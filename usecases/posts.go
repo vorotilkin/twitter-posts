@@ -133,6 +133,20 @@ func (s *PostsServer) Posts(ctx context.Context, request *proto.PostsRequest) (*
 	}, nil
 }
 
+func (s *PostsServer) CommentsByPostID(ctx context.Context, request *proto.CommentsByPostIDRequest) (*proto.CommentsByPostIDResponse, error) {
+	postID := request.GetPostId()
+	if postID == 0 {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+
+	commentsByPostID, err := s.commentsRepository.CommentsByPostID(ctx, []int32{postID})
+	if err != nil {
+		return nil, errors.Wrap(err, "get comments by post id")
+	}
+
+	return &proto.CommentsByPostIDResponse{Comments: hydrators.ProtoComments(commentsByPostID[postID])}, nil
+}
+
 func NewPostsServer(
 	postsRepo PostsRepository,
 	likeRepo LikeRepository,

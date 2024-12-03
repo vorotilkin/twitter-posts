@@ -10,6 +10,7 @@ service Posts {
   rpc Create(CreateRequest) returns (CreateResponse);
   rpc PostByID(PostByIDRequest) returns (PostByIDResponse);
   rpc Posts(PostsRequest) returns (PostsResponse);
+  rpc CommentsByPostID(CommentsByPostIDRequest) returns (CommentsByPostIDResponse);
 }
 
 message Post {
@@ -76,4 +77,12 @@ message PostsRequest {
 
 message PostsResponse {
   repeated Post posts = 1;
+}
+
+message CommentsByPostIDRequest {
+  int32 post_id = 1;
+}
+
+message CommentsByPostIDResponse {
+  repeated Comment comments = 1;
 }

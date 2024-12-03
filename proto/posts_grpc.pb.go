@@ -19,9 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Posts_Create_FullMethodName   = "/posts.Posts/Create"
-	Posts_PostByID_FullMethodName = "/posts.Posts/PostByID"
-	Posts_Posts_FullMethodName    = "/posts.Posts/Posts"
+	Posts_Create_FullMethodName           = "/posts.Posts/Create"
+	Posts_PostByID_FullMethodName         = "/posts.Posts/PostByID"
+	Posts_Posts_FullMethodName            = "/posts.Posts/Posts"
+	Posts_CommentsByPostID_FullMethodName = "/posts.Posts/CommentsByPostID"
 )
 
 // PostsClient is the client API for Posts service.
@@ -31,6 +32,7 @@ type PostsClient interface {
 	Create(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*CreateResponse, error)
 	PostByID(ctx context.Context, in *PostByIDRequest, opts ...grpc.CallOption) (*PostByIDResponse, error)
 	Posts(ctx context.Context, in *PostsRequest, opts ...grpc.CallOption) (*PostsResponse, error)
+	CommentsByPostID(ctx context.Context, in *CommentsByPostIDRequest, opts ...grpc.CallOption) (*CommentsByPostIDResponse, error)
 }
 
 type postsClient struct {
@@ -71,6 +73,16 @@ func (c *postsClient) Posts(ctx context.Context, in *PostsRequest, opts ...grpc.
 	return out, nil
 }
 
+func (c *postsClient) CommentsByPostID(ctx context.Context, in *CommentsByPostIDRequest, opts ...grpc.CallOption) (*CommentsByPostIDResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CommentsByPostIDResponse)
+	err := c.cc.Invoke(ctx, Posts_CommentsByPostID_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PostsServer is the server API for Posts service.
 // All implementations must embed UnimplementedPostsServer
 // for forward compatibility.
@@ -78,6 +90,7 @@ type PostsServer interface {
 	Create(context.Context, *CreateRequest) (*CreateResponse, error)
 	PostByID(context.Context, *PostByIDRequest) (*PostByIDResponse, error)
 	Posts(context.Context, *PostsRequest) (*PostsResponse, error)
+	CommentsByPostID(context.Context, *CommentsByPostIDRequest) (*CommentsByPostIDResponse, error)
 	mustEmbedUnimplementedPostsServer()
 }
 
@@ -96,6 +109,9 @@ func (UnimplementedPostsServer) PostByID(context.Context, *PostByIDRequest) (*Po
 }
 func (UnimplementedPostsServer) Posts(context.Context, *PostsRequest) (*PostsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Posts not implemented")
+}
+func (UnimplementedPostsServer) CommentsByPostID(context.Context, *CommentsByPostIDRequest) (*CommentsByPostIDResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CommentsByPostID not implemented")
 }
 func (UnimplementedPostsServer) mustEmbedUnimplementedPostsServer() {}
 func (UnimplementedPostsServer) testEmbeddedByValue()               {}
@@ -172,6 +188,24 @@ func _Posts_Posts_Handler(srv interface{}, ctx context.Context, dec func(interfa
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Posts_CommentsByPostID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CommentsByPostIDRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PostsServer).CommentsByPostID(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Posts_CommentsByPostID_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PostsServer).CommentsByPostID(ctx, req.(*CommentsByPostIDRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Posts_ServiceDesc is the grpc.ServiceDesc for Posts service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -190,6 +224,10 @@ var Posts_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Posts",
 			Handler:    _Posts_Posts_Handler,
+		},
+		{
+			MethodName: "CommentsByPostID",
+			Handler:    _Posts_CommentsByPostID_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
