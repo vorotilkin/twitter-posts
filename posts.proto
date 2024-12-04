@@ -11,6 +11,7 @@ service Posts {
   rpc PostByID(PostByIDRequest) returns (PostByIDResponse);
   rpc Posts(PostsRequest) returns (PostsResponse);
   rpc CommentsByPostID(CommentsByPostIDRequest) returns (CommentsByPostIDResponse);
+  rpc Like(LikeRequest) returns (LikeResponse);
 }
 
 message Post {
@@ -21,6 +22,7 @@ message Post {
   int32 user_id = 5;
   int32 like_counter = 6;
   repeated Comment comments = 7;
+  bool is_current_user_like = 8;
 }
 
 message Comment {
@@ -43,14 +45,15 @@ message CreateResponse {
 
 message PostByIDRequest {
   int32 id = 1;
+  int32 user_id = 2;
 }
 
 message PostByIDResponse {
   Post post = 1;
 }
 
-message FilterByUserID {
-  int32 user_id = 1;
+message FilterByUserIDs {
+  repeated int32 user_ids = 1;
 }
 
 message FilterByOrder {
@@ -70,9 +73,10 @@ message PostsRequest {
   message Filters {
     FilterByPagination pagination = 1;
     FilterByOrder sort = 2;
-    FilterByUserID filter_user = 3;
+    FilterByUserIDs filter_users = 3;
   }
   Filters filters = 1;
+  int32 current_user_id = 2;
 }
 
 message PostsResponse {
@@ -85,4 +89,18 @@ message CommentsByPostIDRequest {
 
 message CommentsByPostIDResponse {
   repeated Comment comments = 1;
+}
+
+message LikeRequest {
+  int32 post_id = 1;
+  int32 user_id = 2;
+  enum OperationType {
+    OPERATION_TYPE_LIKE_UNSPECIFIED = 0;
+    OPERATION_TYPE_DISLIKE = 1;
+  }
+  OperationType operation_type = 3;
+}
+
+message LikeResponse {
+  bool ok = 1;
 }

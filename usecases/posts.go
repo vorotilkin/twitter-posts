@@ -18,7 +18,9 @@ type PostsRepository interface {
 }
 
 type LikeRepository interface {
-	LikeCountByPostID(ctx context.Context, postIDs []int32) (map[int32]int32, error)
+	LikesByPostIDs(ctx context.Context, postIDs []int32) (map[int32][]models.Like, error)
+	Like(ctx context.Context, userID, postID int32) (bool, error)
+	Dislike(ctx context.Context, userID, postID int32) (bool, error)
 }
 
 type CommentRepository interface {
@@ -65,12 +67,19 @@ func (s *PostsServer) PostByID(ctx context.Context, request *proto.PostByIDReque
 		return nil, status.Error(codes.NotFound, "post not found")
 	}
 
-	likesByPostID, err := s.likeRepository.LikeCountByPostID(ctx, []int32{postID})
+	likesByPostID, err := s.likeRepository.LikesByPostIDs(ctx, []int32{postID})
 	if err != nil {
 		return nil, errors.Wrap(err, "like count repo error")
 	}
 
-	post.LikeCount = likesByPostID[postID]
+	likes := likesByPostID[postID]
+
+	userID := request.GetUserId()
+
+	post.LikeCount = int32(len(likes))
+	post.IsCurrentUserLike = lo.ContainsBy(likes, func(like models.Like) bool {
+		return like.UserID == userID
+	})
 
 	commentsByPostID, err := s.commentsRepository.CommentsByPostID(ctx, []int32{postID})
 	if err != nil {
@@ -92,8 +101,8 @@ func (s *PostsServer) Posts(ctx context.Context, request *proto.PostsRequest) (*
 
 	var filter models.PostFilter
 
-	if userID := protoFilter.GetFilterUser().GetUserId(); userID > 0 {
-		filter.UserIDs = mo.Some([]int32{userID})
+	if userIDs := protoFilter.GetFilterUsers().GetUserIds(); len(userIDs) > 0 {
+		filter.UserIDs = mo.Some(userIDs)
 	}
 
 	if perPage := protoFilter.GetPagination().GetPerPage(); perPage > 0 {
@@ -113,7 +122,7 @@ func (s *PostsServer) Posts(ctx context.Context, request *proto.PostsRequest) (*
 		return post.ID
 	})
 
-	likesByPostID, err := s.likeRepository.LikeCountByPostID(ctx, postIDs)
+	likesByPostID, err := s.likeRepository.LikesByPostIDs(ctx, postIDs)
 	if err != nil {
 		return nil, errors.Wrap(err, "like count repo error")
 	}
@@ -123,9 +132,18 @@ func (s *PostsServer) Posts(ctx context.Context, request *proto.PostsRequest) (*
 		return nil, errors.Wrap(err, "get comments by post ids")
 	}
 
+	userID := request.GetCurrentUserId()
+
 	for i, post := range posts {
-		posts[i].LikeCount = likesByPostID[post.ID]
-		posts[i].Comments = commentsByPostID[post.ID]
+		likes := likesByPostID[post.ID]
+
+		post.LikeCount = int32(len(likes))
+		post.IsCurrentUserLike = lo.ContainsBy(likes, func(like models.Like) bool {
+			return like.UserID == userID
+		})
+		post.Comments = commentsByPostID[post.ID]
+
+		posts[i] = post
 	}
 
 	return &proto.PostsResponse{
@@ -145,6 +163,35 @@ func (s *PostsServer) CommentsByPostID(ctx context.Context, request *proto.Comme
 	}
 
 	return &proto.CommentsByPostIDResponse{Comments: hydrators.ProtoComments(commentsByPostID[postID])}, nil
+}
+
+func (s *PostsServer) Like(ctx context.Context, request *proto.LikeRequest) (*proto.LikeResponse, error) {
+	userID := request.GetUserId()
+	if userID <= 0 {
+		return nil, status.Error(codes.InvalidArgument, "invalid id")
+	}
+
+	postID := request.GetPostId()
+	if postID <= 0 {
+		return nil, status.Error(codes.InvalidArgument, "invalid post id")
+	}
+
+	var (
+		ok  bool
+		err error
+	)
+
+	switch request.GetOperationType() {
+	case proto.LikeRequest_OPERATION_TYPE_DISLIKE:
+		ok, err = s.likeRepository.Dislike(ctx, userID, postID)
+	default:
+		ok, err = s.likeRepository.Like(ctx, userID, postID)
+	}
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &proto.LikeResponse{Ok: ok}, nil
 }
 
 func NewPostsServer(

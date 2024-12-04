@@ -23,6 +23,7 @@ const (
 	Posts_PostByID_FullMethodName         = "/posts.Posts/PostByID"
 	Posts_Posts_FullMethodName            = "/posts.Posts/Posts"
 	Posts_CommentsByPostID_FullMethodName = "/posts.Posts/CommentsByPostID"
+	Posts_Like_FullMethodName             = "/posts.Posts/Like"
 )
 
 // PostsClient is the client API for Posts service.
@@ -33,6 +34,7 @@ type PostsClient interface {
 	PostByID(ctx context.Context, in *PostByIDRequest, opts ...grpc.CallOption) (*PostByIDResponse, error)
 	Posts(ctx context.Context, in *PostsRequest, opts ...grpc.CallOption) (*PostsResponse, error)
 	CommentsByPostID(ctx context.Context, in *CommentsByPostIDRequest, opts ...grpc.CallOption) (*CommentsByPostIDResponse, error)
+	Like(ctx context.Context, in *LikeRequest, opts ...grpc.CallOption) (*LikeResponse, error)
 }
 
 type postsClient struct {
@@ -83,6 +85,16 @@ func (c *postsClient) CommentsByPostID(ctx context.Context, in *CommentsByPostID
 	return out, nil
 }
 
+func (c *postsClient) Like(ctx context.Context, in *LikeRequest, opts ...grpc.CallOption) (*LikeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LikeResponse)
+	err := c.cc.Invoke(ctx, Posts_Like_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PostsServer is the server API for Posts service.
 // All implementations must embed UnimplementedPostsServer
 // for forward compatibility.
@@ -91,6 +103,7 @@ type PostsServer interface {
 	PostByID(context.Context, *PostByIDRequest) (*PostByIDResponse, error)
 	Posts(context.Context, *PostsRequest) (*PostsResponse, error)
 	CommentsByPostID(context.Context, *CommentsByPostIDRequest) (*CommentsByPostIDResponse, error)
+	Like(context.Context, *LikeRequest) (*LikeResponse, error)
 	mustEmbedUnimplementedPostsServer()
 }
 
@@ -112,6 +125,9 @@ func (UnimplementedPostsServer) Posts(context.Context, *PostsRequest) (*PostsRes
 }
 func (UnimplementedPostsServer) CommentsByPostID(context.Context, *CommentsByPostIDRequest) (*CommentsByPostIDResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CommentsByPostID not implemented")
+}
+func (UnimplementedPostsServer) Like(context.Context, *LikeRequest) (*LikeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Like not implemented")
 }
 func (UnimplementedPostsServer) mustEmbedUnimplementedPostsServer() {}
 func (UnimplementedPostsServer) testEmbeddedByValue()               {}
@@ -206,6 +222,24 @@ func _Posts_CommentsByPostID_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Posts_Like_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LikeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PostsServer).Like(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Posts_Like_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PostsServer).Like(ctx, req.(*LikeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Posts_ServiceDesc is the grpc.ServiceDesc for Posts service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -228,6 +262,10 @@ var Posts_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CommentsByPostID",
 			Handler:    _Posts_CommentsByPostID_Handler,
+		},
+		{
+			MethodName: "Like",
+			Handler:    _Posts_Like_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

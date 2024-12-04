@@ -15,13 +15,14 @@ func ProtoPosts(posts []models.Post) []*proto.Post {
 
 func ProtoPost(post models.Post) *proto.Post {
 	return &proto.Post{
-		Id:          post.ID,
-		Body:        post.Body,
-		CreatedAt:   timestamppb.New(post.CreatedAt),
-		UpdatedAt:   timestamppb.New(post.UpdatedAt),
-		UserId:      post.UserID,
-		LikeCounter: post.LikeCount,
-		Comments:    ProtoComments(post.Comments),
+		Id:                post.ID,
+		Body:              post.Body,
+		CreatedAt:         timestamppb.New(post.CreatedAt),
+		UpdatedAt:         timestamppb.New(post.UpdatedAt),
+		UserId:            post.UserID,
+		LikeCounter:       post.LikeCount,
+		IsCurrentUserLike: post.IsCurrentUserLike,
+		Comments:          ProtoComments(post.Comments),
 	}
 }
 

@@ -35,11 +35,6 @@ table "post" {
 table "likes" {
   schema = schema.public
 
-  column "id" {
-    null = false
-    type = serial
-  }
-
   column "user_id" {
     null = false
     type = integer
@@ -50,13 +45,8 @@ table "likes" {
     type = integer
   }
 
-  column "is_like" {
-    null = false
-    type = boolean
-  }
-
   primary_key {
-    columns = [column.id]
+    columns = [column.user_id, column.post_id]
   }
 
   index "idx_like_user_id" {

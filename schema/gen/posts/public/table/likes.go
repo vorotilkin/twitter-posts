@@ -17,10 +17,8 @@ type likesTable struct {
 	postgres.Table
 
 	// Columns
-	ID     postgres.ColumnInteger
 	UserID postgres.ColumnInteger
 	PostID postgres.ColumnInteger
-	IsLike postgres.ColumnBool
 
 	AllColumns     postgres.ColumnList
 	MutableColumns postgres.ColumnList
@@ -61,22 +59,18 @@ func newLikesTable(schemaName, tableName, alias string) *LikesTable {
 
 func newLikesTableImpl(schemaName, tableName, alias string) likesTable {
 	var (
-		IDColumn       = postgres.IntegerColumn("id")
 		UserIDColumn   = postgres.IntegerColumn("user_id")
 		PostIDColumn   = postgres.IntegerColumn("post_id")
-		IsLikeColumn   = postgres.BoolColumn("is_like")
-		allColumns     = postgres.ColumnList{IDColumn, UserIDColumn, PostIDColumn, IsLikeColumn}
-		mutableColumns = postgres.ColumnList{UserIDColumn, PostIDColumn, IsLikeColumn}
+		allColumns     = postgres.ColumnList{UserIDColumn, PostIDColumn}
+		mutableColumns = postgres.ColumnList{}
 	)
 
 	return likesTable{
 		Table: postgres.NewTable(schemaName, tableName, alias, allColumns...),
 
 		//Columns
-		ID:     IDColumn,
 		UserID: UserIDColumn,
 		PostID: PostIDColumn,
-		IsLike: IsLikeColumn,
 
 		AllColumns:     allColumns,
 		MutableColumns: mutableColumns,

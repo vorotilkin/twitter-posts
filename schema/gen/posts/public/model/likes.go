@@ -8,8 +8,6 @@
 package model
 
 type Likes struct {
-	ID     int32 `sql:"primary_key"`
-	UserID int32
-	PostID int32
-	IsLike bool
+	UserID int32 `sql:"primary_key"`
+	PostID int32 `sql:"primary_key"`
 }
