@@ -118,6 +118,12 @@ func (s *PostsServer) Posts(ctx context.Context, request *proto.PostsRequest) (*
 		return nil, errors.Wrap(err, "failed to fetch posts")
 	}
 
+	if len(posts) == 0 {
+		return &proto.PostsResponse{
+			Posts: []*proto.Post{},
+		}, nil
+	}
+
 	postIDs := lo.Map(posts, func(post models.Post, _ int) int32 {
 		return post.ID
 	})
